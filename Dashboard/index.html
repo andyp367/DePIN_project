@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DePIN Dashboard</title>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --border:    #30363d;
+      --accent:    #58a6ff;
+      --green:     #3fb950;
+      --yellow:    #d29922;
+      --red:       #f85149;
+      --text:      #e6edf3;
+      --muted:     #8b949e;
+      --font:      'Segoe UI', system-ui, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+    }
+
+    /* ── Top Nav ──────────────────────────────────────────────────────────── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      height: 60px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      color: var(--accent);
+    }
+
+    .nav-brand .dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+
+    .nav-meta {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    /* ── Layout ───────────────────────────────────────────────────────────── */
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+      display: grid;
+      gap: 1.5rem;
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-areas:
+        "stat  stat  stat"
+        "ledger ledger balances";
+    }
+
+    /* ── Cards ────────────────────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem 1.5rem;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .card-title {
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+
+    .badge-green  { background: rgba(63,185,80,.15);  color: var(--green); }
+    .badge-yellow { background: rgba(210,153,34,.15); color: var(--yellow);}
+    .badge-red    { background: rgba(248,81,73,.15);  color: var(--red);   }
+    .badge-blue   { background: rgba(88,166,255,.15); color: var(--accent);}
+
+    /* ── Stat Row ─────────────────────────────────────────────────────────── */
+    .stat-row {
+      grid-area: stat;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.1rem 1.4rem;
+    }
+
+    .stat-label {
+      font-size: 0.73rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 0.4rem;
+    }
+
+    .stat-value {
+      font-size: 1.7rem;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--text);
+    }
+
+    .stat-sub {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 0.35rem;
+    }
+
+    .stat-sub .up   { color: var(--green); }
+    .stat-sub .down { color: var(--red); }
+
+    /* ── Block Ledger ─────────────────────────────────────────────────────── */
+    .ledger { grid-area: ledger; }
+
+    .block-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    .block-item {
+      display: grid;
+      grid-template-columns: 44px 1fr auto;
+      align-items: center;
+      gap: 0.9rem;
+      padding: 0.75rem 1rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .block-num {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-align: center;
+    }
+
+    .block-hash {
+      font-family: 'Courier New', monospace;
+      font-size: 0.72rem;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .block-records {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .block-time {
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    /* ── Balances ─────────────────────────────────────────────────────────── */
+    .balances { grid-area: balances; }
+
+    .balance-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .balance-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.7rem 0.9rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .wallet-id {
+      font-family: 'Courier New', monospace;
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    .wallet-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .token-amount {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .token-unit {
+      font-size: 0.68rem;
+      color: var(--muted);
+      margin-left: 2px;
+    }
+
+    /* ── Validator Status Section ─────────────────────────────────────────── */
+    .validator-row {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+
+    .validator-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.3rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .v-icon {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .v-icon.green  { background: rgba(63,185,80,.15); }
+    .v-icon.yellow { background: rgba(210,153,34,.15); }
+    .v-icon.blue   { background: rgba(88,166,255,.15); }
+
+    .v-info { flex: 1; }
+    .v-name { font-size: 0.82rem; font-weight: 600; color: var(--text); }
+    .v-detail { font-size: 0.71rem; color: var(--muted); margin-top: 2px; }
+
+    /* ── Section Title ────────────────────────────────────────────────────── */
+    .section-title {
+      grid-column: 1 / -1;
+      font-size: 0.73rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      padding-bottom: 0.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── Empty / Placeholder ──────────────────────────────────────────────── */
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.8rem;
+      padding: 2rem 0;
+    }
+
+    /* ── Footer ───────────────────────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 2rem;
+      font-size: 0.72rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Navigation ──────────────────────────────────────────────────────────── -->
+<nav>
+  <div class="nav-brand">
+    <span class="dot"></span>
+    DePIN Dashboard
+  </div>
+  <div class="nav-meta">CPE 4020 &nbsp;·&nbsp; Spring 2026 &nbsp;·&nbsp; Last updated: <span id="last-updated">—</span></div>
+</nav>
+
+<!-- ── Main Content ─────────────────────────────────────────────────────────── -->
+<main>
+
+  <!-- Stat Cards -->
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-label">Total Blocks</div>
+      <div class="stat-value" id="stat-blocks">7</div>
+      <div class="stat-sub"><span class="up">+1</span> in last 10s</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Tokens Minted</div>
+      <div class="stat-value" id="stat-tokens">142.5</div>
+      <div class="stat-sub">Proof-of-Uptime rewards</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Active Wallets</div>
+      <div class="stat-value" id="stat-wallets">3</div>
+      <div class="stat-sub">Unique public keys</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Validator</div>
+      <div class="stat-value" style="font-size:1.1rem; padding-top:0.3rem;">
+        <span class="badge badge-green" id="stat-validator">ONLINE</span>
+      </div>
+      <div class="stat-sub">TCP :5500</div>
+    </div>
+  </div>
+
+  <!-- Validator Nodes -->
+  <div class="section-title">Validator &amp; Sensor Status</div>
+  <div class="validator-row">
+    <div class="validator-card">
+      <div class="v-icon green">&#128274;</div>
+      <div class="v-info">
+        <div class="v-name">Validator Node (Alex)</div>
+        <div class="v-detail">TCP 0.0.0.0:5500 &nbsp;·&nbsp; <span style="color:var(--green)">Connected</span></div>
+      </div>
+      <span class="badge badge-green">ONLINE</span>
+    </div>
+    <div class="validator-card">
+      <div class="v-icon blue">&#128225;</div>
+      <div class="v-info">
+        <div class="v-name">Uptime Sensor (Andy / Pi)</div>
+        <div class="v-detail">Device: pi-001 &nbsp;·&nbsp; Interval: 5s</div>
+      </div>
+      <span class="badge badge-green">SENDING</span>
+    </div>
+    <div class="validator-card">
+      <div class="v-icon yellow">&#128274;</div>
+      <div class="v-info">
+        <div class="v-name">Wallet (Brandon)</div>
+        <div class="v-detail">Nonce: 4 &nbsp;·&nbsp; Last TX: 30s ago</div>
+      </div>
+      <span class="badge badge-yellow">IDLE</span>
+    </div>
+  </div>
+
+  <!-- Block Ledger -->
+  <div class="card ledger">
+    <div class="card-header">
+      <span class="card-title">Block Ledger</span>
+      <span class="badge badge-blue">7 blocks</span>
+    </div>
+    <div class="block-list" id="block-list">
+
+      <div class="block-item">
+        <div class="block-num">#6</div>
+        <div>
+          <div class="block-hash">a3f7c2d1e9b04...</div>
+          <div class="block-records">3 records &nbsp;·&nbsp; prev: 8e2a1f...</div>
+        </div>
+        <div class="block-time">0:10 ago</div>
+      </div>
+
+      <div class="block-item">
+        <div class="block-num">#5</div>
+        <div>
+          <div class="block-hash">8e2a1f6c3d7b9...</div>
+          <div class="block-records">2 records &nbsp;·&nbsp; prev: 5c9d4e...</div>
+        </div>
+        <div class="block-time">0:20 ago</div>
+      </div>
+
+      <div class="block-item">
+        <div class="block-num">#4</div>
+        <div>
+          <div class="block-hash">5c9d4e0a2f8c1...</div>
+          <div class="block-records">4 records &nbsp;·&nbsp; prev: 1b6f3a...</div>
+        </div>
+        <div class="block-time">0:30 ago</div>
+      </div>
+
+      <div class="block-item">
+        <div class="block-num">#3</div>
+        <div>
+          <div class="block-hash">1b6f3a9e5d2c7...</div>
+          <div class="block-records">1 record &nbsp;·&nbsp; prev: d4e7b2...</div>
+        </div>
+        <div class="block-time">0:40 ago</div>
+      </div>
+
+      <div class="block-item">
+        <div class="block-num">#2</div>
+        <div>
+          <div class="block-hash">d4e7b2c1f9a3d...</div>
+          <div class="block-records">2 records &nbsp;·&nbsp; prev: 7f1c8d...</div>
+        </div>
+        <div class="block-time">0:50 ago</div>
+      </div>
+
+      <div class="block-item">
+        <div class="block-num">#1</div>
+        <div>
+          <div class="block-hash">7f1c8d4b0e6a2...</div>
+          <div class="block-records">1 record &nbsp;·&nbsp; prev: 000000...</div>
+        </div>
+        <div class="block-time">1:00 ago</div>
+      </div>
+
+      <div class="block-item">
+        <div class="block-num">#0</div>
+        <div>
+          <div class="block-hash">0000000000000...</div>
+          <div class="block-records">Genesis Block &nbsp;·&nbsp; prev: —</div>
+        </div>
+        <div class="block-time">genesis</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Wallet Balances -->
+  <div class="card balances">
+    <div class="card-header">
+      <span class="card-title">Wallet Balances</span>
+      <span class="badge badge-blue">3 wallets</span>
+    </div>
+    <div class="balance-list" id="balance-list">
+
+      <div class="balance-item">
+        <div>
+          <div class="wallet-label">pi-001 (Device)</div>
+          <div class="wallet-id">a3f7c2d1...e9b0</div>
+        </div>
+        <div>
+          <span class="token-amount">87.5</span>
+          <span class="token-unit">UPT</span>
+        </div>
+      </div>
+
+      <div class="balance-item">
+        <div>
+          <div class="wallet-label">Wallet A (Brandon)</div>
+          <div class="wallet-id">8e2a1f6c...3d7b</div>
+        </div>
+        <div>
+          <span class="token-amount">40.0</span>
+          <span class="token-unit">UPT</span>
+        </div>
+      </div>
+
+      <div class="balance-item">
+        <div>
+          <div class="wallet-label">Wallet B</div>
+          <div class="wallet-id">5c9d4e0a...f8c1</div>
+        </div>
+        <div>
+          <span class="token-amount">15.0</span>
+          <span class="token-unit">UPT</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  DePIN Dashboard &nbsp;·&nbsp; CPE 4020 Spring 2026 &nbsp;·&nbsp; UI by Alseny (Person 4)
+</footer>
+
+<script>
+  // Update "last updated" timestamp on load
+  function updateTimestamp() {
+    const now = new Date();
+    document.getElementById('last-updated').textContent =
+      now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+  updateTimestamp();
+
+  // TODO: replace setInterval body with real API fetch calls
+  // e.g. fetch('/api/blocks') .then(r => r.json()) .then(renderBlocks)
+  setInterval(updateTimestamp, 1000);
+</script>
+
+</body>
+</html>
