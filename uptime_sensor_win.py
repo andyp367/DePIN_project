@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 # ── Config ────────────────────────────────────────────────────────────────────
 VALIDATOR_HOST = "10.101.169.146"   # ← swap in Person 2's IP
 VALIDATOR_PORT = 5500             # ← swap in Person 2's port
-SEND_INTERVAL  = 60               # seconds between uptime records
+SEND_INTERVAL  = 30               # seconds between uptime records
 # ─────────────────────────────────────────────────────────────────────────────
 
 # Load keys
@@ -30,7 +30,7 @@ def make_uptime_record() -> dict:
         "uptime_seconds": get_uptime_seconds(),
     }
     payload = json.dumps(record, sort_keys=True).encode()
-    record["signature"] = base64.b64encode(private_key.sign(payload)).decode()
+    record["signature"] = private_key.sign(payload).hex()
     return record
 
 
