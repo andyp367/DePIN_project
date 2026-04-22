@@ -80,7 +80,8 @@
       grid-template-columns: 1fr 1fr 1fr;
       grid-template-areas:
         "stat  stat  stat"
-        "ledger ledger balances";
+        "ledger ledger balances"
+        "txns  txns  txns";
     }
 
     /* ── Cards ────────────────────────────────────────────────────────────── */
@@ -248,6 +249,32 @@
       color: var(--muted);
       margin-left: 2px;
     }
+
+    /* ── Transactions ────────────────────────────────────────────────────── */
+    .txns { grid-area: txns; }
+
+    .tx-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .tx-item {
+      display: grid;
+      grid-template-columns: auto 1fr 1fr auto auto;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.7rem 1rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.75rem;
+    }
+
+    .tx-block { color: var(--accent); font-weight: 700; }
+    .tx-addr  { font-family: 'Courier New', monospace; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tx-amount { font-weight: 700; color: var(--green); text-align: right; }
+    .tx-time  { color: var(--muted); white-space: nowrap; }
 
     /* ── Validator Status Section ─────────────────────────────────────────── */
     .validator-row {
@@ -470,6 +497,17 @@
     </div>
   </div>
 
+  <!-- Transaction Feed -->
+  <div class="card txns">
+    <div class="card-header">
+      <span class="card-title">Transaction Feed</span>
+      <span class="badge badge-blue" id="tx-badge">0 txns</span>
+    </div>
+    <div class="tx-list" id="tx-list">
+      <div class="empty">No transactions yet.</div>
+    </div>
+  </div>
+
 </main>
 
 <footer>
@@ -561,9 +599,29 @@
     }
   }
 
+  async function fetchTransactions() {
+    try {
+      const txs = await fetch(`${API}/api/transactions`).then(r => r.json());
+      const list = document.getElementById('tx-list');
+      document.getElementById('tx-badge').textContent = `${txs.length} txn${txs.length !== 1 ? 's' : ''}`;
+      list.innerHTML = txs.length
+        ? [...txs].reverse().map(tx => `
+          <div class="tx-item">
+            <div class="tx-block">Block #${tx.block}</div>
+            <div class="tx-addr" title="${tx.sender}">From: ${tx.sender.slice(0,10)}...${tx.sender.slice(-4)}</div>
+            <div class="tx-addr" title="${tx.receiver}">To: ${tx.receiver.slice(0,10)}...${tx.receiver.slice(-4)}</div>
+            <div class="tx-amount">${tx.amount} UPT</div>
+            <div class="tx-time">${timeAgo(tx.timestamp)}</div>
+          </div>`).join('')
+        : '<div class="empty">No transactions yet.</div>';
+    } catch {
+      document.getElementById('tx-list').innerHTML = '<div class="empty">Could not reach validator.</div>';
+    }
+  }
+
   async function refresh() {
     updateTimestamp();
-    await Promise.all([fetchStats(), fetchBlocks(), fetchBalances()]);
+    await Promise.all([fetchStats(), fetchBlocks(), fetchBalances(), fetchTransactions()]);
   }
 
   refresh();

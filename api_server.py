@@ -44,6 +44,24 @@ def balances():
     return jsonify(node.balances)
 
 
+@app.route('/api/transactions')
+def transactions():
+    txs = []
+    for block in node.blockchain:
+        for record in block.get('records', []):
+            if record.get('type') == 'transaction':
+                d = record['data']
+                txs.append({
+                    "block":    block['index'],
+                    "sender":   d.get('sender_pub', ''),
+                    "receiver": d.get('receiver_pub', ''),
+                    "amount":   d.get('amount', 0),
+                    "nonce":    d.get('nonce', 0),
+                    "timestamp": block['timestamp'],
+                })
+    return jsonify(txs)
+
+
 def block_miner():
     while True:
         time.sleep(15)
