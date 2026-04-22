@@ -4,12 +4,10 @@ Wraps DePINValidator with a Flask HTTP API so the dashboard can poll live data.
 Run this instead of validator.py directly.
 """
 
-import json
 import threading
 import time
-import types
 
-from validator import DePINValidator
+from validatorP2P import DePINValidator
 
 try:
     from flask import Flask, jsonify
@@ -18,29 +16,7 @@ except ImportError:
     print("Missing deps — run: .venv/bin/pip install flask flask-cors")
     raise
 
-node = DePINValidator()
-
-
-def _handle_client_with_ack(client_socket):
-    try:
-        raw_data = client_socket.recv(4096).decode('utf-8')
-        if raw_data:
-            msg_data = json.loads(raw_data)
-            ok = node.process_message(msg_data)
-            ack = json.dumps({"status": "ok" if ok else "rejected"}) + "\n"
-            client_socket.sendall(ack.encode('utf-8'))
-    except Exception as e:
-        print(f"⚠️ TCP Error: {e}")
-        try:
-            client_socket.sendall((json.dumps({"status": "error", "message": str(e)}) + "\n").encode())
-        except Exception:
-            pass
-    finally:
-        client_socket.close()
-
-
-import types
-node._handle_client = types.MethodType(lambda self, sock: _handle_client_with_ack(sock), node)
+node = DePINValidator(host='0.0.0.0')
 
 app = Flask(__name__)
 CORS(app)
@@ -70,12 +46,11 @@ def balances():
 
 def block_miner():
     while True:
-        time.sleep(10)
-        if node.pending_records:
-            node._create_block()
+        time.sleep(15)
+        node.mine_block()
 
 
-TCP_PORT  = 5500
+TCP_PORT  = 5502
 HTTP_PORT = 5501
 
 if __name__ == "__main__":
