@@ -13,9 +13,9 @@ priv_bytes = key.private_bytes(Encoding.Raw, PrivateFormat.Raw, NoEncryption())
 pub_bytes  = key.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
 
 keys = {
-    "device_id": "pi-001",
-    "public_key":  base64.b64encode(pub_bytes).decode(),
-    "private_key": base64.b64encode(priv_bytes).decode()  # keep this local, never share
+    "device_id":   "pi-001",
+    "public_key":  pub_bytes.hex(),
+    "private_key": priv_bytes.hex()
 }
 
 os.makedirs("keys", exist_ok=True)
