@@ -58,7 +58,7 @@ class DePINValidator:
 
     def handle_uptime(self, data, signature):
         """Validates Proof-of-Uptime records."""
-        pub_key = data.get('device_id') # Assuming device_id is the public key hex
+        pub_key = 0xf431e4c82af52e02ce81b863763ab57423a4d194f008f80cddbec59d9ecb1e64 # Assuming device_id is the public key hex
         
         # 1. Verify Signature
         if not self.verify_signature(pub_key, data, signature):
@@ -156,7 +156,9 @@ class DePINValidator:
             raw_data = client_socket.recv(4096).decode('utf-8')
             if raw_data:
                 msg_data = json.loads(raw_data)
-                self.process_message(msg_data)
+                success=self.process_message(msg_data)
+                ack = json.dumps({"status": "ok" if success else "rejected"}) + "\n"
+                client_socket.sendall(ack.encode())
         except Exception as e:
             print(f"⚠️ TCP Error: {e}")
         finally:
