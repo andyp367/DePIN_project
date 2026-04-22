@@ -389,7 +389,7 @@
   <div class="card ledger">
     <div class="card-header">
       <span class="card-title">Block Ledger</span>
-      <span class="badge badge-blue">7 blocks</span>
+      <span class="badge badge-blue" id="block-badge">0 blocks</span>
     </div>
     <div class="block-list" id="block-list">
 
@@ -463,7 +463,7 @@
   <div class="card balances">
     <div class="card-header">
       <span class="card-title">Wallet Balances</span>
-      <span class="badge badge-blue">3 wallets</span>
+      <span class="badge badge-blue" id="balance-badge">0 wallets</span>
     </div>
     <div class="balance-list" id="balance-list">
 
@@ -510,17 +510,97 @@
 </footer>
 
 <script>
-  // Update "last updated" timestamp on load
+  const API = 'http://localhost:5501';
+
   function updateTimestamp() {
     const now = new Date();
     document.getElementById('last-updated').textContent =
       now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   }
-  updateTimestamp();
 
-  // TODO: replace setInterval body with real API fetch calls
-  // e.g. fetch('/api/blocks') .then(r => r.json()) .then(renderBlocks)
-  setInterval(updateTimestamp, 1000);
+  function timeAgo(ts) {
+    const diff = Math.floor((Date.now() / 1000) - ts);
+    if (diff < 60) return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    return `${Math.floor(diff / 3600)}h ago`;
+  }
+
+  function shortKey(key) {
+    if (!key || key.length < 12) return key;
+    return key.slice(0, 8) + '...' + key.slice(-4);
+  }
+
+  async function fetchStats() {
+    try {
+      const d = await fetch(`${API}/api/stats`).then(r => r.json());
+      document.getElementById('stat-blocks').textContent = d.total_blocks;
+      document.getElementById('stat-tokens').textContent = d.tokens_minted;
+      document.getElementById('stat-wallets').textContent = d.active_wallets;
+      const badge = document.getElementById('stat-validator');
+      badge.textContent = d.validator_online ? 'ONLINE' : 'OFFLINE';
+      badge.className = 'badge ' + (d.validator_online ? 'badge-green' : 'badge-red');
+    } catch {
+      const badge = document.getElementById('stat-validator');
+      badge.textContent = 'OFFLINE';
+      badge.className = 'badge badge-red';
+    }
+  }
+
+  async function fetchBlocks() {
+    try {
+      const blocks = await fetch(`${API}/api/blocks`).then(r => r.json());
+      const list = document.getElementById('block-list');
+      document.getElementById('block-badge').textContent = `${blocks.length} block${blocks.length !== 1 ? 's' : ''}`;
+      list.innerHTML = [...blocks].reverse().map(b => {
+        const recCount = b.records ? b.records.length : 0;
+        const prevShort = b.previous_hash ? b.previous_hash.slice(0, 6) + '...' : '—';
+        const when = b.index === 0 ? 'genesis' : timeAgo(b.timestamp);
+        return `
+          <div class="block-item">
+            <div class="block-num">#${b.index}</div>
+            <div>
+              <div class="block-hash">${b.hash ? b.hash.slice(0, 13) + '...' : '—'}</div>
+              <div class="block-records">${recCount} record${recCount !== 1 ? 's' : ''} &nbsp;·&nbsp; prev: ${prevShort}</div>
+            </div>
+            <div class="block-time">${when}</div>
+          </div>`;
+      }).join('');
+    } catch {
+      document.getElementById('block-list').innerHTML = '<div class="empty">Could not reach validator.</div>';
+    }
+  }
+
+  async function fetchBalances() {
+    try {
+      const balances = await fetch(`${API}/api/balances`).then(r => r.json());
+      const list = document.getElementById('balance-list');
+      const entries = Object.entries(balances);
+      document.getElementById('balance-badge').textContent = `${entries.length} wallet${entries.length !== 1 ? 's' : ''}`;
+      list.innerHTML = entries.length
+        ? entries.sort((a, b) => b[1] - a[1]).map(([key, bal]) => `
+          <div class="balance-item">
+            <div>
+              <div class="wallet-label">${shortKey(key)}</div>
+              <div class="wallet-id">${key.slice(0, 8)}...${key.slice(-4)}</div>
+            </div>
+            <div>
+              <span class="token-amount">${bal.toFixed(2)}</span>
+              <span class="token-unit">UPT</span>
+            </div>
+          </div>`).join('')
+        : '<div class="empty">No wallets yet.</div>';
+    } catch {
+      document.getElementById('balance-list').innerHTML = '<div class="empty">Could not reach validator.</div>';
+    }
+  }
+
+  async function refresh() {
+    updateTimestamp();
+    await Promise.all([fetchStats(), fetchBlocks(), fetchBalances()]);
+  }
+
+  refresh();
+  setInterval(refresh, 5000);
 </script>
 
 </body>
