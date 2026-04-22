@@ -4,7 +4,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 # ── Config ────────────────────────────────────────────────────────────────────
 VALIDATOR_HOST = "10.101.169.146"
-VALIDATOR_PORT = 5500
+VALIDATOR_PORT = 5502             # ← updated from 5500
 SEND_INTERVAL  = 30
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -15,7 +15,6 @@ private_key = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(keys["private_k
 
 
 def get_uptime_seconds() -> int:
-    """Reads /proc/uptime — available on all Linux systems including the Pi."""
     with open("/proc/uptime") as f:
         return int(float(f.read().split()[0]))
 
@@ -26,7 +25,8 @@ def make_uptime_record() -> dict:
         "device_id":      keys["public_key"],
         "uptime_seconds": get_uptime_seconds(),
     }
-    payload = json.dumps(record, sort_keys=True).encode()
+    # ← separators=(',', ':') must match validator's canonical JSON exactly
+    payload = json.dumps(record, sort_keys=True, separators=(',', ':')).encode()
     record["signature"] = private_key.sign(payload).hex()
     return record
 
