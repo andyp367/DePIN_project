@@ -3,7 +3,7 @@ import time, json, socket, ctypes
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 # ── Config ────────────────────────────────────────────────────────────────────
-VALIDATOR_HOST = "10.101.169.146"
+VALIDATOR_HOST = "127.0.0.1"
 VALIDATOR_PORT = 5504
 SEND_INTERVAL  = 30
 # ─────────────────────────────────────────────────────────────────────────────

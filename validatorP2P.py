@@ -8,7 +8,7 @@ from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.exceptions import InvalidSignature
 
 class DePINValidator:
-    def __init__(self, host='127.0.0.1', port=5000, peers=None):
+    def __init__(self, host='0.0.0.0', port=5000, peers=None):
         self.host = host
         self.port = port
         self.peers = peers if peers else []
@@ -63,6 +63,27 @@ class DePINValidator:
                 "status": "ok",
                 "balance": self.balances.get(pub_key, 0),
                 "next_nonce": len([n for pk, n in self.used_nonces if pk == pub_key]) + 1
+            }
+
+        if msg_type == 'get_balances':
+            with self.chain_lock:
+                return {"status": "ok", "balances": dict(self.balances)}
+
+        if msg_type == 'get_blocks':
+            count = msg_data.get('count', 10)
+            with self.chain_lock:
+                recent = self.blockchain[-count:]
+            return {"status": "ok", "blocks": list(reversed(recent))}
+
+        if msg_type == 'get_status':
+            with self.chain_lock:
+                last_block = self.blockchain[-1] if self.blockchain else None
+            return {
+                "status": "ok",
+                "chain_height": len(self.blockchain),
+                "pending_count": len(self.pending_records),
+                "last_block_time": last_block['timestamp'] if last_block else 0,
+                "last_block_hash": last_block['hash'] if last_block else None,
             }
 
         # 3. Handle Transactions & Uptime (Needs Signature)
