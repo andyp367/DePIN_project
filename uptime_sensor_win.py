@@ -1,11 +1,12 @@
 # uptime_sensor_win.py
 import time, json, socket, ctypes
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from datetime import datetime, timezone
 
 # ── Config ────────────────────────────────────────────────────────────────────
-VALIDATOR_HOST = "127.0.0.1"
+VALIDATOR_HOST = "10.101.169.146"
 VALIDATOR_PORT = 5504
-SEND_INTERVAL  = 30
+SEND_INTERVAL  = 10
 # ─────────────────────────────────────────────────────────────────────────────
 
 with open("keys/device_keys.json") as f:
@@ -18,13 +19,30 @@ def get_uptime_seconds() -> int:
     return ctypes.windll.kernel32.GetTickCount64() // 1000
 
 
+def fmt_time(unix_ts: float) -> str:
+    """Convert a Unix timestamp to a readable local time string."""
+    return datetime.fromtimestamp(unix_ts, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+
+def fmt_uptime(seconds: int) -> str:
+    """Convert raw seconds into d/h/m/s string."""
+    d, rem = divmod(seconds, 86400)
+    h, rem = divmod(rem, 3600)
+    m, s   = divmod(rem, 60)
+    parts = []
+    if d: parts.append(f"{d}d")
+    if h: parts.append(f"{h}h")
+    if m: parts.append(f"{m}m")
+    parts.append(f"{s}s")
+    return " ".join(parts)
+
+
 def make_uptime_record() -> dict:
     record = {
-        "timestamp":      time.time(),
+        "timestamp":      time.time(),        # ← must stay Unix float for validator
         "device_id":      keys["public_key"],
         "uptime_seconds": get_uptime_seconds(),
     }
-    # ← separators=(',', ':') must match validator's canonical JSON exactly
     payload = json.dumps(record, sort_keys=True, separators=(',', ':')).encode()
     record["signature"] = private_key.sign(payload).hex()
     return record
@@ -44,7 +62,7 @@ def send_record(record: dict) -> bool:
                 ack += chunk
         response = json.loads(ack.strip())
         if response.get("status") == "ok":
-            print(f"[ACK] Validator accepted record at {record['timestamp']}")
+            print(f"[ACK] Accepted at {fmt_time(record['timestamp'])}")
             return True
         else:
             print(f"[WARN] Validator rejected: {response}")
@@ -66,7 +84,7 @@ def run():
     consecutive_failures = 0
     while True:
         record = make_uptime_record()
-        print(f"[SEND] uptime={record['uptime_seconds']}s  ts={record['timestamp']}")
+        print(f"[SEND] {fmt_time(record['timestamp'])}  uptime={fmt_uptime(record['uptime_seconds'])}")
         if send_record(record):
             consecutive_failures = 0
         else:
