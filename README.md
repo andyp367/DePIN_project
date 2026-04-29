@@ -12,11 +12,13 @@ Core Features
 - Validator nodes to approve submissions
 - Wallet system for token balances
 - Live dashboard for network monitoring
+
 Team Roles
 - Alseny Diallo – Dashboard / UI Development
 - Andy Phan – Physical Hardware and Uptime Tracking
 - Brandon Kirchheim – Wallet System Development
 - Alex Willis – Validator Logic and Blockchain Development
+  
 System Flow
 - Device stays active on the network and tracks uptime.
 - Uptime data is submitted to the system.
